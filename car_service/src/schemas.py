@@ -10,7 +10,7 @@ class CarBase(BaseModel):
     is_available: bool
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class CreateCar(CarBase):
     pass
