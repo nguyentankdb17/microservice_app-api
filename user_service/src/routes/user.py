@@ -5,7 +5,6 @@ from passlib.context import CryptContext
 from src.core.auth import verify_password, create_access_token
 from src.models import User
 from src.database import SessionLocal, get_db
-from src.utils.redis_client import redis_client
 
 # pwd_context for hashing passwords
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -57,10 +56,9 @@ def register(form_data: OAuth2PasswordRequestForm = Depends()):
         "username": new_user.username
     }
 
-# This endpoint allows a user to log out by adding their token to a blacklist
+# This endpoint allows a user to log out
 @router.post("/logout")
 def logout(token: str = Depends(oauth2_scheme)):
-    redis_client.setex(f"blacklist:{token}", 900, "true")
     return {"message": "Log out successfully"}
 
 # This endpoint retrieves the current user's information

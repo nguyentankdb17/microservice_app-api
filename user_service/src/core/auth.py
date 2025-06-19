@@ -7,7 +7,6 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from src.database import get_db
 from src.models import User
-from src.utils.redis_client import redis_client
 import os
 from dotenv import load_dotenv
 
@@ -35,12 +34,6 @@ def decode_access_token(token: str):
     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
-    if redis_client.get(f"blacklist:{token}"):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has been revoked. Please login again."
-        )
-    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
