@@ -7,15 +7,19 @@ from src.models import User
 from src.database import SessionLocal, get_db
 from src.utils.redis_client import redis_client
 
+# pwd_context for hashing passwords
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
+# Create a router for user-related endpoints
 router = APIRouter(
     prefix="/api/user",
     tags=["user"]
 )
 
+# This endpoint allows a user to log in and receive a JWT token
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     db = SessionLocal()
@@ -32,6 +36,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "message": f"Login successfully with role {user.is_admin and 'admin' or 'user'}"
     }
 
+# This endpoint allows a new user to register
 @router.post("/register")
 def register(form_data: OAuth2PasswordRequestForm = Depends()):
     db = SessionLocal()
@@ -52,11 +57,13 @@ def register(form_data: OAuth2PasswordRequestForm = Depends()):
         "username": new_user.username
     }
 
+# This endpoint allows a user to log out by adding their token to a blacklist
 @router.post("/logout")
 def logout(token: str = Depends(oauth2_scheme)):
     redis_client.setex(f"blacklist:{token}", 900, "true")
     return {"message": "Log out successfully"}
 
+# This endpoint retrieves the current user's information
 @router.get("/user-info")
 def get_profile(current_user: User = Depends(get_current_user)):
     return {
@@ -64,13 +71,3 @@ def get_profile(current_user: User = Depends(get_current_user)):
         "username": current_user.username,
         "is_admin": current_user.is_admin,
     }
-
-@router.get("/current_user")
-def current_user(current_user: User = Depends(get_current_user)):
-    return current_user
-
-@router.get("/check_admin")
-def check_admin(current_user: User = Depends(get_current_user)):
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Access denied")
-    return {"message": "You are an admin user"}
