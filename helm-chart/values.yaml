@@ -1,0 +1,20 @@
+appName: servicename
+replicaCount: 2
+
+container:
+  image:
+    repository: "nguyentankdb17/microserviceapp_servicename"
+    tag: 1.0.0
+  imagePullPolicy: IfNotPresent
+  port: 8000
+  containerEnvVars:
+  - name: ENV1
+    value: "value1"
+  - name: ENV2
+    value: "value2"
+  - name: ENV3
+    value: "value3"
+
+service:
+  type: ClusterIP
+  port: 8000
