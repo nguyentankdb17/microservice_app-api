@@ -22,6 +22,7 @@ MEMORY_USAGE_GAUGE = Gauge(
     "System memory usage in percent",
 )
 
+
 # Middleware to update metrics on each request
 async def update_request_counter(request, call_next):
     route_path = request.url.path
@@ -38,7 +39,7 @@ async def update_request_counter(request, call_next):
     return response
 
 
-# Middleware to update system resource metrics    
+# Middleware to update system resource metrics
 async def update_system_metrics(request, call_next):
     CPU_USAGE_GAUGE.set(psutil.cpu_percent())
     MEMORY_USAGE_GAUGE.set(psutil.virtual_memory().percent)

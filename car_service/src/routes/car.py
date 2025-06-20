@@ -11,6 +11,7 @@ from src.middleware.auth import verify_token, require_admin
 # Initialize the router
 router = APIRouter(prefix="/api/cars", tags=["cars"])
 
+
 @router.get("/list", response_model=List[schemas.Car])
 async def get_cars(request: Request, db: Session = Depends(get_db)):
     auth_header = request.headers.get("Authorization")

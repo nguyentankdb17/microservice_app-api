@@ -41,8 +41,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @router.post("/register")
 def register(form_data: OAuth2PasswordRequestForm = Depends()):
     db = SessionLocal()
+
+    # Check if the username already exists
     existing_user = (
-        db.query(User).filter(User.username == form_data.username).first()
+        db.query(User)
+        .filter(User.username == form_data.username)
+        .first()
     )
 
     if existing_user:
@@ -61,6 +65,7 @@ def register(form_data: OAuth2PasswordRequestForm = Depends()):
         "message": "User registered successfully",
         "username": new_user.username,
     }
+
 
 # This endpoint retrieves the current user's information
 @router.get("/user-info")
