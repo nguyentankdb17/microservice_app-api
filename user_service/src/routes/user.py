@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from src.core.auth import get_current_user
+from src.middleware.auth import get_current_user
 from passlib.context import CryptContext
-from src.core.auth import verify_password, create_access_token
+from src.middleware.auth import verify_password, create_access_token
 from src.models import User
 from src.database import SessionLocal
 
@@ -61,13 +61,6 @@ def register(form_data: OAuth2PasswordRequestForm = Depends()):
         "message": "User registered successfully",
         "username": new_user.username,
     }
-
-
-# This endpoint allows a user to log out
-@router.post("/logout")
-def logout(token: str = Depends(oauth2_scheme)):
-    return {"message": "Log out successfully"}
-
 
 # This endpoint retrieves the current user's information
 @router.get("/user-info")
