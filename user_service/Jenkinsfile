@@ -16,7 +16,7 @@ pipeline {
                     - name: workspace-volume
                       mountPath: /home/jenkins/agent
 
-                  # Container 2: Node.js for install and src code quality checks
+                  # Container 2: Python for src code quality checks
                   - name: python
                     image: python:3.11-slim
                     command: ["sleep"]
