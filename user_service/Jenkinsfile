@@ -64,7 +64,7 @@ pipeline {
 
     // Update environment variables
     environment {
-        DOCKER_IMAGE_NAME = 'nguyentankdb17/microservice_app_user_service'
+        DOCKER_IMAGE_NAME = 'nguyentankdb17/microserviceapp_user_service'
         GIT_CONFIG_REPO_CREDENTIALS_ID = 'github'
         GIT_CONFIG_REPO_URL = 'https://github.com/nguyentankdb17/microservice_app-config'
     }
