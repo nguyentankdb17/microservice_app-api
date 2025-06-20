@@ -16,7 +16,7 @@ pipeline {
                     - name: workspace-volume
                       mountPath: /home/jenkins/agent
 
-                  # Container 2: Node.js for install and src code quality checks
+                  # Container 2: Python for src code quality checks
                   - name: python
                     image: python:3.11-slim
                     command: ["sleep"]
@@ -64,7 +64,7 @@ pipeline {
 
     // Update environment variables
     environment {
-        DOCKER_IMAGE_NAME = 'nguyentankdb17/microservice_app_user_service'
+        DOCKER_IMAGE_NAME = 'nguyentankdb17/microserviceapp_user_service'
         GIT_CONFIG_REPO_CREDENTIALS_ID = 'github'
         GIT_CONFIG_REPO_URL = 'https://github.com/nguyentankdb17/microservice_app-config'
     }

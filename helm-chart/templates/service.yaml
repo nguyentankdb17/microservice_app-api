@@ -5,8 +5,8 @@ metadata:
 spec:
   selector:
     app:  {{ .Values.appName}}
-  type:  {{ .Values.serviceType}}
+  type:  {{ .Values.service.type}}
   ports:
   - protocol: TCP
-    port:  {{ .Values.servicePort}}
-    targetPort:  {{ .Values.containerPort}}
+    port:  {{ .Values.service.port}}
+    targetPort:  {{ .Values.container.port}}
