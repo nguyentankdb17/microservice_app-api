@@ -1,5 +1,5 @@
-from datetime import date
 from pydantic import BaseModel
+
 
 class CarBase(BaseModel):
     name: str
@@ -12,8 +12,10 @@ class CarBase(BaseModel):
     class Config:
         from_attributes = True
 
+
 class CreateCar(CarBase):
     pass
+
 
 class Car(CarBase):
     id: int

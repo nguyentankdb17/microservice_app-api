@@ -1,6 +1,7 @@
 from src.database import Base
 from sqlalchemy import Column, Integer, String, Boolean
 
+
 class Car(Base):
     __tablename__ = "cars"
 
