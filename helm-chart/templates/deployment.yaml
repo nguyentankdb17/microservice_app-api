@@ -21,7 +21,6 @@ spec:
           ports:
             - containerPort: {{ .Values.container.port }}
           env:
-            env:
             {{- range .Values.container.containerEnvVars }}
             - name: {{ .name }}
               {{- if .value }}
