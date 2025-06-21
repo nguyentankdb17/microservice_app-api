@@ -1,6 +1,6 @@
-from prometheus_client import Counter, Gauge, make_asgi_app
-import psutil
+from prometheus_client import Counter, make_asgi_app
 import re
+from starlette.responses import Response
 
 # Prometheus ASGI app
 metrics_app = make_asgi_app()
@@ -9,40 +9,32 @@ metrics_app = make_asgi_app()
 REQUEST_COUNTER = Counter(
     "api_requests_total",
     "Total number of requests to the api",
-    ["endpoint"],
-)
-
-CPU_USAGE_GAUGE = Gauge(
-    "system_cpu_usage_percent",
-    "System CPU usage in percent",
-)
-
-MEMORY_USAGE_GAUGE = Gauge(
-    "system_memory_usage_percent",
-    "System memory usage in percent",
+    ["method", "handler", "status_code"],
 )
 
 
 # Middleware to update metrics on each request
 async def update_request_counter(request, call_next):
     route_path = request.url.path
+    method = request.method
 
     # Simplify the route path by removing dynamic segments
     # e.g., /cars/update/1 -> /cars/update
-    simplified_endpoint = re.sub(r"/\d+($|/)", "/", route_path).rstrip("/")
-    if not simplified_endpoint:
-        simplified_endpoint = "/"
+    handler_path = re.sub(r"/\d+($|/)", "/", route_path).rstrip("/")
+    if not handler_path:
+        handler_path = "/"
 
-    REQUEST_COUNTER.labels(endpoint=simplified_endpoint).inc()
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+    except Exception as e:
+        status_code = 500
+        response = Response("Internal Server Error", status_code=status_code)
+    finally:
+        REQUEST_COUNTER.labels(
+            method=method,
+            handler=handler_path,
+            status_code=status_code
+        ).inc()
 
-    response = await call_next(request)
-    return response
-
-
-# Middleware to update system resource metrics
-async def update_system_metrics(request, call_next):
-    CPU_USAGE_GAUGE.set(psutil.cpu_percent())
-    MEMORY_USAGE_GAUGE.set(psutil.virtual_memory().percent)
-
-    response = await call_next(request)
     return response
