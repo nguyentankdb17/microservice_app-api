@@ -27,7 +27,7 @@ async def update_request_counter(request, call_next):
     try:
         response = await call_next(request)
         status_code = response.status_code
-    except Exception as e:
+    except Exception:
         status_code = 500
         response = Response("Internal Server Error", status_code=status_code)
     finally:
