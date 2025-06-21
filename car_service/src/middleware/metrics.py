@@ -32,9 +32,7 @@ async def update_request_counter(request, call_next):
         response = Response("Internal Server Error", status_code=status_code)
     finally:
         REQUEST_COUNTER.labels(
-            method=method,
-            handler=handler_path,
-            status_code=status_code
+            method=method, handler=handler_path, status_code=status_code
         ).inc()
 
     return response

@@ -26,7 +26,10 @@ class RateLimiter:
 
         # Check if the number of requests exceeds the allowed limit
         if len(self.requests[client_ip]) >= self.times:
-            raise HTTPException(status_code=409, detail="Too many requests, please try again later.")
+            raise HTTPException(
+                status_code=409,
+                detail="Too many requests, please try again later.",
+            )
 
         # Record the current request timestamp
         self.requests[client_ip].append(current_time)

@@ -15,11 +15,16 @@ router = APIRouter(prefix="/api/cars", tags=["cars"])
 # Rate limiter to limit requests to 10 per minute globally
 global_limiter = RateLimiter(times=10, seconds=60)
 
-@router.get("/list", response_model=List[schemas.Car], dependencies=[Depends(global_limiter)])
+
+@router.get(
+    "/list",
+    response_model=List[schemas.Car],
+    dependencies=[Depends(global_limiter)],
+)
 async def get_cars(
-    request: Request, 
+    request: Request,
     db: Session = Depends(get_db),
-    ):
+):
     """Endpoint to list all cars.
     Requires a valid Bearer token in the Authorization header.
     """
@@ -37,12 +42,16 @@ async def get_cars(
 
 
 # Define the routes for creating a car
-@router.post("/create", response_model=schemas.Car, dependencies=[Depends(global_limiter)])
+@router.post(
+    "/create",
+    response_model=schemas.Car,
+    dependencies=[Depends(global_limiter)],
+)
 async def create_car(
     car: schemas.CreateCar,
     db: Session = Depends(get_db),
     user: dict = Depends(require_admin),
-    dependencies=[Depends(global_limiter)]
+    dependencies=[Depends(global_limiter)],
 ):
     """Endpoint to create a new car.
     Requires an admin role.
@@ -56,13 +65,17 @@ async def create_car(
 
 
 # Define the routes for updating a car
-@router.put("/update/{car_id}", response_model=schemas.Car, dependencies=[Depends(global_limiter)])
+@router.put(
+    "/update/{car_id}",
+    response_model=schemas.Car,
+    dependencies=[Depends(global_limiter)],
+)
 async def update_car(
     car_id: int,
     car: schemas.Car,
     db: Session = Depends(get_db),
     user: dict = Depends(require_admin),
-    dependencies=[Depends(global_limiter)]
+    dependencies=[Depends(global_limiter)],
 ):
     """Endpoint to update an existing car.
     Requires an admin role.
@@ -86,7 +99,7 @@ async def delete_car(
     car_id: int,
     db: Session = Depends(get_db),
     user: dict = Depends(require_admin),
-    dependencies=[Depends(global_limiter)]
+    dependencies=[Depends(global_limiter)],
 ):
     """Endpoint to delete a car.
     Requires an admin role.
