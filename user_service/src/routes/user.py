@@ -5,6 +5,10 @@ from passlib.context import CryptContext
 from src.middleware.auth import verify_password, create_access_token
 from src.models import User
 from src.database import SessionLocal
+from src.middleware.ratelimit import RateLimiter
+
+# Rate limiter to limit requests to 10 per minute globally
+global_limiter = RateLimiter(times=10, seconds=60)
 
 # pwd_context for hashing passwords
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -17,7 +21,7 @@ router = APIRouter(prefix="/api/user", tags=["user"])
 
 
 # This endpoint allows a user to log in and receive a JWT token
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(global_limiter)])
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     db = SessionLocal()
     user = db.query(User).filter(User.username == form_data.username).first()
@@ -38,7 +42,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 # This endpoint allows a new user to register
-@router.post("/register")
+@router.post("/register", dependencies=[Depends(global_limiter)])
 def register(form_data: OAuth2PasswordRequestForm = Depends()):
     db = SessionLocal()
 
@@ -68,7 +72,7 @@ def register(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 # This endpoint retrieves the current user's information
-@router.get("/user-info")
+@router.get("/user-info", dependencies=[Depends(global_limiter)])
 def get_profile(current_user: User = Depends(get_current_user)):
     return {
         "id": current_user.id,
