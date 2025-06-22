@@ -110,7 +110,7 @@ pipeline {
         }
 
         // Code Style Check
-        stage('2. Code Style Check') {
+        stage('Code Style Check') {
             steps {
                 container('python') {
                     script {
@@ -127,7 +127,7 @@ pipeline {
 
                         // Step 2: Check code style with flake8
                         echo "Running code style check with flake8..."
-                        dir ('user_service') {
+                        dir ('car_service') {
                             sh 'flake8 . --exclude=venv'
                         }
                         echo "Flake8 style check completed."
