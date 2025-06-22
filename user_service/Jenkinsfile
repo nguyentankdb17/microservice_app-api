@@ -16,19 +16,19 @@ pipeline {
                     - name: workspace-volume
                       mountPath: /home/jenkins/agent
 
-                  # Container 2: Node.js for install and src code quality checks
-                  - name: node
-                    image: node:20-alpine
+                  # Container 2: Python for src code quality checks
+                  - name: python
+                    image: python:3.11-slim
                     command: ["sleep"]
                     args: ["9999999"]
                     volumeMounts:
-                        - name: workspace-volume
-                          mountPath: /home/jenkins/agent
+                      - name: workspace-volume
+                        mountPath: /home/jenkins/agent
                     resources:
-                        requests:
-                          ephemeral-storage: "512Mi"
-                        limits:
-                          ephemeral-storage: "1Gi"
+                      requests:
+                        ephemeral-storage: "512Mi"
+                      limits:
+                        ephemeral-storage: "1Gi"
                       
                   # Container 3: Kaniko for building image
                   # CHANGE: Use Kaniko 'debug' image. This image contains shell and 'sleep' command.
@@ -109,31 +109,28 @@ pipeline {
 
         }
 
-        // Code Style & Quality Check
-        stage('Code Style & Quality Check') {
+        // Code Style Check
+        stage('2. Code Style Check') {
             steps {
-                container('node') {
+                container('python') {
                     script {
                         // Step 1: Install dependencies
-                        echo 'Install required dependencies to start checking...'
-                        dir('user_service') {
-                            sh 'npm ci'
+                        echo 'Installing Python dependencies for flake8...'
+                        dir ('user_service') {
+                            sh '''
+                                pip install --upgrade pip
+                                pip install flake8
+                            '''
                         }
-                        echo "Dependencies installed successfully"
+                        
+                        echo "Dependencies installed successfully."
 
-                        // Step 2: Run code quality check
-                        echo "Running Code Quality check..."
-                        dir('user_service') {
-                            sh 'npx eslint .'
+                        // Step 2: Check code style with flake8
+                        echo "Running code style check with flake8..."
+                        dir ('user_service') {
+                            sh 'flake8 . --exclude=venv'
                         }
-                        echo "Code Quality check completed."
-
-                        // Step 3: Run code style check
-                        echo "Running formatting check..."
-                        dir('user_service') {
-                            sh 'npx prettier --check .'
-                        }
-                        echo "Formatting check completed."
+                        echo "Flake8 style check completed."
                     }
                 }
             }
