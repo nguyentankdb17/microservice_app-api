@@ -16,19 +16,19 @@ pipeline {
                     - name: workspace-volume
                       mountPath: /home/jenkins/agent
 
-                  # Container 2: Python for src code quality checks
-                  - name: python
-                    image: python:3.11-slim
+                  # Container 2: Node.js for install and src code quality checks
+                  - name: node
+                    image: node:20-alpine
                     command: ["sleep"]
                     args: ["9999999"]
                     volumeMounts:
-                      - name: workspace-volume
-                        mountPath: /home/jenkins/agent
+                        - name: workspace-volume
+                          mountPath: /home/jenkins/agent
                     resources:
-                      requests:
-                        ephemeral-storage: "512Mi"
-                      limits:
-                        ephemeral-storage: "1Gi"
+                        requests:
+                          ephemeral-storage: "512Mi"
+                        limits:
+                          ephemeral-storage: "1Gi"
                       
                   # Container 3: Kaniko for building image
                   # CHANGE: Use Kaniko 'debug' image. This image contains shell and 'sleep' command.
@@ -66,12 +66,12 @@ pipeline {
     environment {
         DOCKER_IMAGE_NAME = 'nguyentankdb17/microserviceapp_user_service'
         GIT_CONFIG_REPO_CREDENTIALS_ID = 'github'
-        GIT_CONFIG_REPO_URL = 'https://github.com/nguyentankdb17/microservice_app-config'
+        GIT_CONFIG_REPO_URL = 'https://github.com/nguyentankdb17/microservice_app-config.git'
     }
 
     stages {
         // Checkout src code from GitHub
-        stage('1. Checkout Code') {
+        stage('Checkout Code') {
             steps {
                 script {
                     echo "Start checking out source code..."
@@ -83,55 +83,83 @@ pipeline {
             }
         }
 
-        // Code Style Check
-        stage('2. Code Style Check') {
+        // Check latest commit tag
+        stage('Check latest commit tag') {
             steps {
-                container('python') {
+                script {
+                    sh 'git fetch --tags'
+
+                    // Get the latest git commit tag
+                    echo "Checking latest git commit tag..."
+                    def gitCommit = sh(script: 'git rev-parse HEAD', returnStdout: true).trim().substring(0, 8)
+                    def commitTag = sh(script: "git tag --contains ${gitCommit}", returnStdout: true).trim()
+                    echo "Latest git commit tag is: ${commitTag}"
+
+                    // Check if the tag is empty
+                    if (commitTag == '') {
+                        echo "No tag found in the latest commit: ${gitCommit}"
+                        // Abort the pipeline if no tag is found
+                        currentBuild.result = 'ABORTED'
+                        error "No tag found in the latest commit. The remaining pipeline will be aborted."
+                    } else {
+                        echo "Git commit tag check passed."
+                    }
+                }
+            }
+
+        }
+
+        // Code Style & Quality Check
+        stage('Code Style & Quality Check') {
+            steps {
+                container('node') {
                     script {
                         // Step 1: Install dependencies
-                        echo 'Installing Python dependencies for flake8...'
-                        dir ('user_service') {
-                            sh '''
-                                pip install --upgrade pip
-                                pip install flake8
-                            '''
+                        echo 'Install required dependencies to start checking...'
+                        dir('user_service') {
+                            sh 'npm ci'
                         }
-                        
-                        echo "Dependencies installed successfully."
+                        echo "Dependencies installed successfully"
 
-                        // Step 2: Check code style with flake8
-                        echo "Running code style check with flake8..."
-                        dir ('user_service') {
-                            sh 'flake8 . --exclude=venv'
+                        // Step 2: Run code quality check
+                        echo "Running Code Quality check..."
+                        dir('user_service') {
+                            sh 'npx eslint .'
                         }
-                        echo "Flake8 style check completed."
+                        echo "Code Quality check completed."
+
+                        // Step 3: Run code style check
+                        echo "Running formatting check..."
+                        dir('user_service') {
+                            sh 'npx prettier --check .'
+                        }
+                        echo "Formatting check completed."
                     }
                 }
             }
         }
 
-
         // Build and Push with KANIKO
-        stage('3. Build & Push Docker Image (with Kaniko)') {
+        stage('Build & Push Docker Image') {
             steps {
                 // Run `script` outside `container` to get git commit first
                 script {
                     // Step 1: Get git commit hash in default 'jnlp' container (where git is available)
                     def gitCommit = sh(script: 'git rev-parse HEAD', returnStdout: true).trim().substring(0, 8)
-                    def dockerImageTag = "${DOCKER_IMAGE_NAME}:${gitCommit}"
+                    def commitTag = sh(script: "git tag --contains ${gitCommit}", returnStdout: true).trim()
+                    def dockerImageTag = "${DOCKER_IMAGE_NAME}:${commitTag}"
 
                     // Step 2: Enter 'kaniko' container to build
                     container('kaniko') {
                         echo "Building and pushing image with Kaniko: ${dockerImageTag}"
-                        
                         dir('user_service') {
-                            sh """
-                              /kaniko/executor \
-                                --context . \
-                                --dockerfile Dockerfile \
-                                --destination ${dockerImageTag}
-                            """
-                        }           
+                          sh """
+                            /kaniko/executor \
+                              --context . \
+                              --dockerfile Dockerfile \
+                              --destination ${dockerImageTag}
+                          """
+                        }
                         echo "Build and push image to DockerHub with Kaniko completed."
                     }
                 }
@@ -139,13 +167,14 @@ pipeline {
         }
 
         // Update K8s manifest repository with new image tag
-        stage('4. Update K8s Manifest Repo') {
+        stage('Update K8s Manifest Repo') {
             steps {
                 // Run in default 'jnlp' container
                 script {
                     def gitCommit = sh(script: 'git rev-parse HEAD', returnStdout: true).trim().substring(0, 8)
-                    def dockerImageTag = "${DOCKER_IMAGE_NAME}:${gitCommit}"
-                
+                    def commitTag = sh(script: "git tag --contains ${gitCommit}", returnStdout: true).trim()
+                    def dockerImageTag = "${DOCKER_IMAGE_NAME}:${commitTag}"
+
                     echo "Starting to update K8s manifest repository ..."
                 
                     // Use SSH credentials
@@ -157,25 +186,24 @@ pipeline {
                         sh "git clone -b main git@github.com:nguyentankdb17/microservice_app-config.git cd-config-repo"
                 
                         dir('cd-config-repo') {
-                            echo "Updating image tag in user_service_values.yaml to ${gitCommit}"
-                            
+                            echo "Updating image tag in user_service_values.yaml to ${commitTag}"
+
                             // Update user_service_values.yaml file
-                            sh "sed -i 's|tag: .*|tag: \"${gitCommit}\"|g' user_service_values.yaml"
-                
+                            sh "sed -i 's|tag: .*|tag: \"${commitTag}\"|g' user_service_values.yaml"
+
                             // Configure git user
                             sh "git config user.email 'nguyentankdb17@gmail.com'"
                             sh "git config user.name 'nguyentankdb17'"
-                
+
                             // Commit and push changes
                             sh "git add user_service_values.yaml"
-                            sh "git commit -m 'ci: Update image tag to ${gitCommit}'"
+                            sh "git commit -m 'CI: Update image tag to ${commitTag}'"
                             sh "git push origin main"
                         }
                     }
                 
                     echo "K8s manifest repository updated successfully."
                 }
-
             }
         }
     }
